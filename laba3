@@ -2,51 +2,58 @@
 # # сумма чисел в нечетных строках в области 3, то поменять в В симметрично области 3 и 2 местами, иначе В и Е поменять
 # # местами несимметрично. При этом матрица А не меняется. После чего вычисляется выражение: (К*F)*А– K*AT . Выводятся по
 # # мере формирования А, F и все матричные операции последовательно.
-import random
-def generate_matrix(N):
-    return [[random.randint(-10, 10) for _ in range(N)] for _ in range(N)]
 def print_matrix(matrix):
     for row in matrix:
-        print(row)
-def min_element(matrix):
-    min_elem = float('inf')
-    min_row = -1
-    min_col = -1
-    for i in range(len(matrix)):
-        for j in range(len(matrix[i])):
-            if matrix[i][j] < min_elem:
-                min_elem = matrix[i][j]
-                min_row = i
-                min_col = j
-    return min_elem, min_row, min_col
-def check_condition(matrix, min_row, min_col):
-    sum_odd_rows = sum(matrix[i][j] for i in range(len(matrix)) if i % 2 != 0 for j in range(len(matrix[i])))
-    min_elem, _, _ = min_element(matrix)
-    return min_elem > sum_odd_rows
-def swap_elements(matrix, row1, col1, row2, col2):
-    matrix[row1][col1], matrix[row2][col2] = matrix[row2][col2], matrix[row1][col1]
-def main():
-    K = int(input("Введи значение K: "))
-    N = int(input("Введи размерность матрицы N: "))
-    A = generate_matrix(N)
-    print("Матрица A:")
-    print_matrix(A)
-    B = generate_matrix(N)
-    C = generate_matrix(N)
-    D = generate_matrix(N)
-    E = generate_matrix(N)
-    F = B
-    min_elem, min_row, min_col = min_element(E)
-    if check_condition(E, min_row, min_col):
-        for i in range(N):
-            for j in range(N):
-                B[i][j], C[i][j] = C[i][j], B[i][j]
-    else:
-        B, F = F, E
-    result = [[(K * F[i][j]) * A[i][j] - (K * A[i][j]) for j in range(N)] for i in range(N)]
-    print("Матрица F:")
-    print_matrix(F)
-    print("Матрица всех результатов:")
-    print_matrix(result)
-if __name__ == "__main__":
-    main()
+        print(' '.join(map(str, row)))
+    print()
+def transpose(matrix):
+    transposed = [[matrix[j][i] for j in range(len(matrix))] for i in range(len(matrix[0]))]
+    return transposed
+def matrix_multiply(a, b):
+    result = [[0 for _ in range(len(b[0]))] for _ in range(len(a))]
+    for i in range(len(a)):
+        for j in range(len(b[0])):
+            for k in range(len(b)):
+                result[i][j] += a[i][k] * b[k][j]
+    return result
+def scalar_multiply(k, matrix):
+    return [[k * matrix[i][j] for j in range(len(matrix[0]))] for i in range(len(matrix))]
+
+K = int(input("Введи K: "))
+N = int(input("Введи N: "))
+A = [[(i * N + j) % 21 - 10 for j in range(N)] for i in range(N)]  # Заполнение матрицы для тестирования
+
+print("Матрица A:")
+print_matrix(A)
+
+mid = N // 2
+B = [row[:mid] for row in A[:mid]]
+C = [row[mid:] for row in A[:mid]]
+D = [row[:mid] for row in A[mid:]]
+E = [row[mid:] for row in A[mid:]]
+
+F = [row[:] for row in A]
+
+min_in_E = min(E[i][j] for i in range(mid) for j in range(mid) if j % 2 == 0)
+sum_in_D = sum(D[i][j] for i in range(mid) for j in range(mid) if i % 2 == 0)
+
+if min_in_E > sum_in_D:
+    for i in range(mid):
+        for j in range(mid):
+            if i % 2 == 0:
+                F[i][j + mid], F[i + mid][j] = F[i + mid][j], F[i][j + mid]
+else:
+    for i in range(mid):
+        for j in range(mid):
+            F[i][j], F[i + mid][j + mid] = A[i + mid][j + mid], A[i][j]
+
+print("Матрица F:")
+print_matrix(F)
+
+KF = scalar_multiply(K, F)
+KFA = matrix_multiply(KF, A)
+KAT = scalar_multiply(K, transpose(A))
+result = [[KFA[i][j] - KAT[i][j] for j in range(N)] for i in range(N)]
+
+print("Результат выражения (K*F)*A – K*A^T:")
+print_matrix(result)
