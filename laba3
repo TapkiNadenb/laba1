@@ -34,8 +34,17 @@ E = [row[mid:] for row in A[mid:]]
 
 F = [row[:] for row in A]
 
-min_in_E = min(E[i][j] for i in range(mid) for j in range(mid) if j % 2 == 0)
-sum_in_D = sum(D[i][j] for i in range(mid) for j in range(mid) if i % 2 == 0)
+# Ищем минимальное значение в верхнем треугольнике подматрицы E (включая главную диагональ)
+min_in_E = float('inf')  # Инициализируем переменную очень большим числом
+for i in range(mid):
+    for j in range(i, mid):  # Начинаем с i, чтобы взять верхний треугольник
+        min_in_E = min(min_in_E, E[i][j])
+
+# Считаем сумму элементов в нижнем треугольнике подматрицы D (включая главную диагональ)
+sum_in_D = 0  # Инициализируем сумму нулем
+for i in range(mid):
+    for j in range(i + 1):  # Ограничиваемся i, чтобы взять нижний треугольник
+        sum_in_D += D[i][j]
 
 if min_in_E > sum_in_D:
     for i in range(mid):
