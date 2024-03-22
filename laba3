@@ -2,65 +2,80 @@
 # # сумма чисел в нечетных строках в области 3, то поменять в В симметрично области 3 и 2 местами, иначе В и Е поменять
 # # местами несимметрично. При этом матрица А не меняется. После чего вычисляется выражение: (К*F)*А– K*AT . Выводятся по
 # # мере формирования А, F и все матричные операции последовательно.
+import randomы
+def create_matrix(n, random_fill=False):
+    if random_fill:
+        return [[random.randint(-10, 10) for _ in range(n)] for _ in range(n)]
+    else:
+        return [[(n*i + j + 1) for j in range(n)] for i in range(n)]
+
+def transpose_matrix(matrix):
+    n = len(matrix)
+    return [[matrix[j][i] for j in range(n)] for i in range(n)]
+
+def multiply_matrices(m1, m2):
+    n = len(m1)
+    result = [[0 for _ in range(n)] for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                result[i][j] += m1[i][k] * m2[k][j]
+    return result
+
+def multiply_matrix_by_constant(matrix, k):
+    n = len(matrix)
+    return [[k * matrix[i][j] for j in range(n)] for i in range(n)]
+
+def subtract_matrices(m1, m2):
+    n = len(m1)
+    return [[m1[i][j] - m2[i][j] for j in range(n)] for i in range(n)]
+
+def swap_submatrices(matrix, n):
+    sub_n = n // 2
+    for i in range(sub_n):
+        for j in range(sub_n):
+            matrix[i][j], matrix[i + sub_n][j + sub_n] = matrix[i + sub_n][j + sub_n], matrix[i][j]
+    return matrix
+
 def print_matrix(matrix):
     for row in matrix:
-        print(' '.join(map(str, row)))
+        print(" ".join(map(str, row)))
     print()
-def transpose(matrix):
-    transposed = [[matrix[j][i] for j in range(len(matrix))] for i in range(len(matrix[0]))]
-    return transposed
-def matrix_multiply(a, b):
-    result = [[0 for _ in range(len(b[0]))] for _ in range(len(a))]
-    for i in range(len(a)):
-        for j in range(len(b[0])):
-            for k in range(len(b)):
-                result[i][j] += a[i][k] * b[k][j]
-    return result
-def scalar_multiply(k, matrix):
-    return [[k * matrix[i][j] for j in range(len(matrix[0]))] for i in range(len(matrix))]
 
-K = int(input("Введи K: "))
-N = int(input("Введи N: "))
-A = [[(i * N + j) % 21 - 10 for j in range(N)] for i in range(N)]  # Заполнение матрицы для тестирования
+def main():
+    k = int(input("Введите число K: "))
+    n = int(input("Введите размер матрицы N: "))
 
-print("Матрица A:")
-print_matrix(A)
+    A = create_matrix(n, random_fill=False)
+    print("Матрица A:")
+    print_matrix(A)
 
-mid = N // 2
-B = [row[:mid] for row in A[:mid]]
-C = [row[mid:] for row in A[:mid]]
-D = [row[:mid] for row in A[mid:]]
-E = [row[mid:] for row in A[mid:]]
+    E = [row[n//2:] for row in A[n//2:]]
 
-F = [row[:] for row in A]
+    min_elem_in_E = min(min(row[j] for j in range(0, n//2, 2)) for row in E)
 
-min_in_E = float('inf')  
-for i in range(mid):
-    for j in range(i, mid):  
-        min_in_E = min(min_in_E, E[i][j])
+    B = [row[:n//2] for row in A[:n//2]]
+    sum_in_B = sum(sum(row[j] for j in range(n//2)) for i, row in enumerate(B) if i % 2 != 0)
 
-sum_in_D = 0 
-for i in range(mid):
-    for j in range(i + 1):
-        sum_in_D += D[i][j]
+    F = create_matrix(n)
+    if min_elem_in_E > sum_in_B:
+        F = swap_submatrices(F, n)
+    else:
+        F = swap_submatrices(A, n)
 
-if min_in_E > sum_in_D:
-    for i in range(mid):
-        for j in range(mid):
-            if i % 2 == 0:
-                F[i][j + mid], F[i + mid][j] = F[i + mid][j], F[i][j + mid]
-else:
-    for i in range(mid):
-        for j in range(mid):
-            F[i][j], F[i + mid][j + mid] = A[i + mid][j + mid], A[i][j]
+    print("Матрица F после преобразований:")
+    print_matrix(F)
 
-print("Матрица F:")
-print_matrix(F)
+    KF = multiply_matrix_by_constant(F, k)
+    KFA = multiply_matrices(KF, A)
 
-KF = scalar_multiply(K, F)
-KFA = matrix_multiply(KF, A)
-KAT = scalar_multiply(K, transpose(A))
-result = [[KFA[i][j] - KAT[i][j] for j in range(N)] for i in range(N)]
+    AT = transpose_matrix(A)
+    KAT = multiply_matrix_by_constant(AT, k)
 
-print("Результат выражения (K*F)*A – K*A^T:")
-print_matrix(result)
+    result_matrix = subtract_matrices(KFA, KAT)
+
+    print("Результат (К*F)*А - K*AT:")
+    print_matrix(result_matrix)
+
+if __name__ == "__main__":
+    main()
