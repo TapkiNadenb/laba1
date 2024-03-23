@@ -3,80 +3,188 @@
 # # местами несимметрично. При этом матрица А не меняется. После чего вычисляется выражение: (К*F)*А– K*AT . Выводятся по
 # # мере формирования А, F и все матричные операции последовательно.
 import random
-def create_matrix(n, random_fill=False):
-    if random_fill:
-        return [[random.randint(-10, 10) for _ in range(n)] for _ in range(n)]
-    else:
-        return [[(n*i + j + 1) for j in range(n)] for i in range(n)]
-
-def transpose_matrix(matrix):
-    n = len(matrix)
-    return [[matrix[j][i] for j in range(n)] for i in range(n)]
-
-def multiply_matrices(m1, m2):
-    n = len(m1)
-    result = [[0 for _ in range(n)] for _ in range(n)]
+import copy
+def rand_filling_mat(size):
+    result = []
+    for i in range(size):
+        random_numbers = [round(random.uniform(-10, 10), 2) for i in range(size)]
+        result.append(random_numbers)
+    return result
+# Генерация матрицы размером(size,size) случайными значениями от -10 до 10 вкл.
+def input_mat(size):
+    matrix = []
+    for i in range(size):
+        row = []
+        for j in range(size):
+            # Запрашиваем у пользователя числа для каждой ячейки
+            value = float(input(f"Введите значение для [{i+1}][{j+1}]: "))
+            row.append(value)
+        matrix.append(row)
+    return matrix
+def triangle_left(mat):
+    elements = []
+    for i in range(len(mat)//2):
+        for j in range(len(mat)-i):
+            if j % 2 == 0:
+                elements.append(mat[i][j])
+    for i in range(len(mat)//2, len(mat)):
+        for j in range(len(mat)-(i+1)):
+            if j % 2 == 0:
+                elements.append(mat[i][j])
+    return elements
+# поиск элементов левой области
+def triangle_right(mat):
+    elements = []
+    for i in range(len(mat)//2):
+        for j in range(len(mat)-(i), len(mat)):
+            if j % 2 == 0:
+                elements.append(mat[i][j])
+    for i in range(len(mat)//2, len(mat)):
+        for j in range(i+1, len(mat)):
+            if j % 2 == 0:
+                elements.append(mat[i][j])
+    return elements
+# поиск элементов правой области
+def replace_elements(A):
+    A_copy = copy.deepcopy(A)
+    # Обмениваем элементы
     for i in range(n):
-        for j in range(n):
-            for k in range(n):
-                result[i][j] += m1[i][k] * m2[k][j]
+        for j in range(0, n - i):
+            A_copy[i][n - j - 1] = A[j][n - i - 1]
+            A_copy[j][n - i - 1] = A[i][n - j - 1]
+
+    print("\n")
+    print(A)
+    for i in range(len(A)):
+        for j in range(i+1):
+            A_copy[i][j] = A[i][j]
+    return A_copy
+# поменять в матрице «С» симметрично области 1 и 3 местами
+def transpon(mat):
+    result = []
+    rows = len(mat)
+    cols = len(mat[0])
+    for j in range(cols):
+        transposed_row = []
+        for i in range(rows):
+            transposed_row.append(mat[i][j])
+        result.append(transposed_row)
+    return result
+# Транспонирование Матриц
+def print_mat(mat, description):
+    print(description+"\n")
+    for i in mat:
+        print(i)
+    print("\n")
+
+def multiply_matrices(matrix1, matrix2):
+    result = []
+    rows = len(matrix1)
+    cols = len(matrix2[0])
+    for i in range(rows):
+        row = []
+        for j in range(cols):
+            value = 0
+            for k in range(len(matrix2)):
+                value += matrix1[i][k] * matrix2[k][j]
+            row.append(round(value, 2))
+        result.append(row)
+    return result
+def add_matrices(matrix1, matrix2):
+    result = []
+    for i in range(len(matrix1)):
+        row = []
+        for j in range(len(matrix1[0])):
+            row.append(matrix1[i][j] + matrix2[i][j])
+        result.append(row)
+    return result
+def subtract_matrices(matrix1, matrix2):
+    result = []
+    for i in range(len(matrix1)):
+        row = []
+        for j in range(len(matrix1[0])):
+            row.append(round(matrix1[i][j] - matrix2[i][j], 2))
+        result.append(row)
+    return result
+def multiply_k_matric(k, matrix1):
+    result = []
+    for i in range(len(matrix1)):
+        row = []
+        for j in range(len(matrix1[0])):
+            row.append(round(matrix1[i][j] * k, 2))
+        result.append(row)
     return result
 
-def multiply_matrix_by_constant(matrix, k):
-    n = len(matrix)
-    return [[k * matrix[i][j] for j in range(n)] for i in range(n)]
+def separation_mat(mat):
+    mat1 = []
+    mat2 = []
+    mat3 = []
+    mat4 = []
+    for i in range(len(mat)//2):
+        row = []
+        for j in range(len(mat)//2):
+            row.append(mat[i][j])
+        mat1.append(row)
+    for i in range(len(mat)//2):
+        row = []
+        for j in range(len(mat)//2+len(mat)%2,len(mat)):
+            row.append(mat[i][j])
+        mat2.append(row)
+    for i in range(len(mat)//2+len(mat)%2,len(mat)):
+        row = []
+        for j in range(len(mat)//2):
+            row.append(mat[i][j])
+        mat3.append(row)
+    for i in range(len(mat)//2+len(mat)%2,len(mat)):
+        row = []
+        for j in range(len(mat)//2+len(mat)%2,len(mat)):
+            row.append(mat[i][j])
+        mat4.append(row)
+    result = [mat1,mat2,mat3,mat4]
+    return result
 
-def subtract_matrices(m1, m2):
-    n = len(m1)
-    return [[m1[i][j] - m2[i][j] for j in range(n)] for i in range(n)]
+def conect_mat(mat, mat1, mat2, mat3, mat4):
+    result = mat
+    for i,i1 in zip(range(len(mat)//2), range(len(mat1))):
+        for j,j1 in zip(range(len(mat)//2), range(len(mat1))):
+            result[i][j] = mat1[i1][j1]
+    for i,i1 in zip(range(len(mat)//2), range(len(mat2))):
+        for j,j1 in zip(range(len(mat)//2+len(mat)%2,len(mat)), range(len(mat2))):
+            result[i][j] = mat2[i1][j1]
+    for i,i1 in zip(range(len(mat)//2+len(mat)%2,len(mat)), range(len(mat3))):
+        for j,j1 in zip(range(len(mat)//2), range(len(mat3))):
+            result[i][j] = mat3[i1][j1]
+    for i,i1 in zip(range(len(mat)//2+len(mat)%2,len(mat)), range(len(mat4))):
+        for j,j1 in zip(range(len(mat)//2+len(mat)%2,len(mat)), range(len(mat4))):
+            result[i][j] = mat4[i1][j1]
+    return result
 
-def swap_submatrices(matrix, n):
-    sub_n = n // 2
-    for i in range(sub_n):
-        for j in range(sub_n):
-            matrix[i][j], matrix[i + sub_n][j + sub_n] = matrix[i + sub_n][j + sub_n], matrix[i][j]
-    return matrix
+k = int(input("введите число к = "))
+n = int(input("введите число n больше 5 = "))
+while n < 6:
+    n = int(input("введите число n больше 5 = "))
 
-def print_matrix(matrix):
-    for row in matrix:
-        print(" ".join(map(str, row)))
-    print()
+A = rand_filling_mat(n)
+F = A.copy()
+temp_a = separation_mat(A)
+B = temp_a[0]
+C = temp_a[1]
+D = temp_a[2]
+E = temp_a[3]
 
-def main():
-    k = int(input("Введите число K: "))
-    n = int(input("Введите размер матрицы N: "))
+print_mat(A, "Матрица A")
+print_mat(B, "Матрица B")
+print_mat(C, "Матрица C")
+print_mat(D, "Матрица D")
+print_mat(E, "Матрица E")
 
-    A = create_matrix(n, random_fill=False)
-    print("Матрица A:")
-    print_matrix(A)
-
-    E = [row[n//2:] for row in A[n//2:]]
-
-    min_elem_in_E = min(min(row[j] for j in range(0, n//2, 2)) for row in E)
-
-    B = [row[:n//2] for row in A[:n//2]]
-    sum_in_B = sum(sum(row[j] for j in range(n//2)) for i, row in enumerate(B) if i % 2 != 0)
-
-    F = create_matrix(n)
-    if min_elem_in_E > sum_in_B:
-        F = swap_submatrices(F, n)
-    else:
-        F = swap_submatrices(A, n)
-
-    print("Матрица F после преобразований:")
-    print_matrix(F)
-
-    KF = multiply_matrix_by_constant(F, k)
-    KFA = multiply_matrices(KF, A)
-
-    AT = transpose_matrix(A)
-    KAT = multiply_matrix_by_constant(AT, k)
-
-    result_matrix = subtract_matrices(KFA, KAT)
-
-    print("Результат (К*F)*А - K*AT:")
-    print_matrix(result_matrix)
-
-if __name__ == "__main__":
-    main()
-
+if min(triangle_left(E)) > sum(triangle_right(E)):
+    B = replace_elements(B)
+    discription = "Измененная матрица B в матрице А(F)"
+else:
+    (B, E) = (E, B)
+    discription = "Поменяные матрицы B и E местами"
+conect_mat(F,B,C,D,E)
+print_mat(F, "Матрица F")
+result = subtract_matrices(multiply_matrices(multiply_k_matric(k, F), A), multiply_k_matric(k,transpon(A)))
+print_mat(result, "((F+A)– (K * F) )*AT")
