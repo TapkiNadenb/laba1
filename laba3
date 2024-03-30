@@ -10,13 +10,13 @@ def rand_filling_mat(size):
         random_numbers = [round(random.uniform(-10, 10), 2) for i in range(size)]
         result.append(random_numbers)
     return result
-# Генерация матрицы размером(size,size) случайными значениями от -10 до 10 вкл.
+# Генерирую матрицы размером(size,size) случайными значениями от -10 до 10 вкл.
 def input_mat(size):
     matrix = []
     for i in range(size):
         row = []
         for j in range(size):
-            # Запрашиваем у пользователя числа для каждой ячейки
+            # Запрашиваю у пользователя числа для каждой ячейки
             value = float(input(f"Введите значение для [{i+1}][{j+1}]: "))
             row.append(value)
         matrix.append(row)
@@ -47,7 +47,7 @@ def triangle_right(mat):
 # поиск элементов правой области
 def replace_elements(A):
     A_copy = copy.deepcopy(A)
-    # Обмениваем элементы
+    # Обмениваю элементы
     for i in range(n):
         for j in range(0, n - i):
             A_copy[i][n - j - 1] = A[j][n - i - 1]
