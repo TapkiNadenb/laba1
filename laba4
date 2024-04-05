@@ -1,0 +1,116 @@
+"""
+16. Формируется матрица F следующим образом: скопировать в нее А и  если в Е максимальный элемент в
+нечетных столбцах больше, чем сумма чисел в нечетных строках, то поменять местами С и В симметрично, иначе
+В и Е поменять местами несимметрично. При этом матрица А не меняется. После чего если определитель
+матрицы А больше суммы диагональных элементов матрицы F, то вычисляется выражение: A-1*AT – K * F-1,
+иначе вычисляется выражение (AТ +G-FТ)*K, где G-нижняя треугольная матрица, полученная из А.
+Выводятся по мере формирования А, F и все матричные операции последовательно.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+"""
+Функция для создания матрицы A с целенаправленным заполнением
+"""
+def create_matrix_A(N):
+    """
+    Заполнение подматриц целенаправленными значениями для отладки
+    """
+    B = np.full((N // 2, N // 2), 1)
+    C = np.full((N // 2, N // 2), 2)
+    D = np.full((N // 2, N // 2), 3)
+    E = np.full((N // 2, N // 2), 4)
+    """
+    Сборка матрицы A из подматриц
+    """
+    A = np.block([[B, C], [D, E]])
+    return A
+
+"""
+Функция для формирования матрицы F
+"""
+def create_matrix_F(A):
+    N = A.shape[0]
+    F = A.copy()
+    E = A[N // 2:, N // 2:]
+    C = A[:N // 2, N // 2:]
+    B = A[:N // 2, :N // 2]
+
+    max_in_odd_columns = np.max(E[:, 1::2])
+    sum_in_odd_rows = np.sum(E[1::2, :], axis=1).sum()
+
+    if max_in_odd_columns > sum_in_odd_rows:
+        F[:N // 2, N // 2:], F[:N // 2, :N // 2] = B, C
+    else:
+        F[:N // 2, :N // 2], F[N // 2:, N // 2:] = E, B
+    return F
+
+"""
+Функция для выполнения матричных операций
+"""
+def matrix_operations(A, F, K):
+    if np.linalg.det(A) > np.trace(F):
+        result = np.linalg.inv(A) @ A.T - K * np.linalg.inv(F)
+    else:
+        G = np.tril(A)
+        result = (A.T + G - F.T) * K
+    return result
+
+"""
+Функция для построения тепловых карт матриц
+"""
+def plot_heatmaps(matrix1, matrix2, matrix3):
+    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+    """
+    Тепловая карта матрицы 1
+    """
+    ax1 = axs[0]
+    im1 = ax1.imshow(matrix1, cmap='viridis')
+    ax1.title.set_text('Matrix 1 Heatmap')
+    fig.colorbar(im1, ax=ax1)
+    """
+    Тепловая карта матрицы 2
+    """
+    ax2 = axs[1]
+    im2 = ax2.imshow(matrix2, cmap='viridis')
+    ax2.title.set_text('Matrix 2 Heatmap')
+    fig.colorbar(im2, ax=ax2)
+    """
+    Тепловая карта матрицы 3
+    """
+    ax3 = axs[2]
+    im3 = ax3.imshow(matrix3, cmap='viridis')
+    ax3.title.set_text('Matrix 3 Heatmap')
+    fig.colorbar(im3, ax=ax3)
+
+    plt.tight_layout()
+    plt.show()
+
+"""
+Основная функция
+"""
+def main():
+    K = int(input("Введи число K: "))
+    N = int(input("Введи размерность матрицы N (Она должно быть четным): "))
+    if N % 2 != 0:
+        print("N должно быть четным числом.")
+        return
+
+    A = create_matrix_A(N)
+    F = create_matrix_F(A)
+    result = matrix_operations(A, F, K)
+    """
+    Вывод матриц и построение тепловых карт
+    """
+    print("Матрица A:")
+    print(A)
+    print("Матрица F после модификации:")
+    print(F)
+    print("Результат матричных операций:")
+    print(result)
+
+    plot_heatmaps(A, F, result)
+
+
+if __name__ == "__main__":
+    main()
