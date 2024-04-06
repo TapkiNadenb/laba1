@@ -57,31 +57,31 @@ def matrix_operations(A, F, K):
     return result
 
 """
-Функция для построения тепловых карт матриц
+Функция для построения графиков
 """
-def plot_heatmaps(matrix1, matrix2, matrix3):
-    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+def plot_graphs(matrix):
+    plt.figure(figsize=(18, 5))
     """
-    Тепловая карта матрицы 1
+    Тепловая карта матрицы
     """
-    ax1 = axs[0]
-    im1 = ax1.imshow(matrix1, cmap='viridis')
-    ax1.title.set_text('Matrix 1 Heatmap')
-    fig.colorbar(im1, ax=ax1)
+    plt.subplot(1, 3, 1)
+    plt.title('Heatmap of the Matrix')
+    plt.imshow(matrix, cmap='viridis')
+    plt.colorbar()
     """
-    Тепловая карта матрицы 2
+    Гистограмма сумм строк матрицы
     """
-    ax2 = axs[1]
-    im2 = ax2.imshow(matrix2, cmap='viridis')
-    ax2.title.set_text('Matrix 2 Heatmap')
-    fig.colorbar(im2, ax=ax2)
+    plt.subplot(1, 3, 2)
+    plt.title('Row Sums of the Matrix')
+    row_sums = np.sum(matrix, axis=1)
+    plt.bar(np.arange(len(row_sums)), row_sums)
     """
-    Тепловая карта матрицы 3
+    График сумм столбцов матрицы
     """
-    ax3 = axs[2]
-    im3 = ax3.imshow(matrix3, cmap='viridis')
-    ax3.title.set_text('Matrix 3 Heatmap')
-    fig.colorbar(im3, ax=ax3)
+    plt.subplot(1, 3, 3)
+    plt.title('Column Sums of the Matrix')
+    col_sums = np.sum(matrix, axis=0)
+    plt.plot(col_sums)
 
     plt.tight_layout()
     plt.show()
@@ -91,25 +91,26 @@ def plot_heatmaps(matrix1, matrix2, matrix3):
 """
 def main():
     K = int(input("Введи число K: "))
-    N = int(input("Введи размерность матрицы N (Она должно быть четным): "))
+    N = int(input("Введи размерность матрицы N ( Она должна быть Чётной ): "))
+
     if N % 2 != 0:
         print("N должно быть четным числом.")
         return
 
     A = create_matrix_A(N)
-    F = create_matrix_F(A)
-    result = matrix_operations(A, F, K)
-    """
-    Вывод матриц и построение тепловых карт
-    """
     print("Матрица A:")
     print(A)
+    plot_graphs(A)
+
+    F = create_matrix_F(A)
     print("Матрица F после модификации:")
     print(F)
+    plot_graphs(F)
+
+    result = matrix_operations(A, F, K)
     print("Результат матричных операций:")
     print(result)
-
-    plot_heatmaps(A, F, result)
+    plot_graphs(result)
 
 
 if __name__ == "__main__":
