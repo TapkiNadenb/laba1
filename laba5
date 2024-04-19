@@ -1,0 +1,82 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# Предположим, что это ваша рабочая рекурсивная функция
+def recursive_F(n):
+    if n == 0:
+        return 1
+    else:
+        return recursive_F(n-1) + 1/n
+
+# Простая итеративная функция для примера
+def iterative_F(n):
+    result = 1
+    for i in range(1, n+1):
+        result += 1/i
+    return result
+
+# Функция для получения ввода от пользователя
+def get_user_input():
+    while True:
+        try:
+            n = int(input("Введите положительное целое число n больше 1: "))
+            if n > 1:
+                return n
+            else:
+                print("Число должно быть больше 1.")
+        except ValueError:
+            print("Неверный ввод. Пожалуйста, введите целое число.")
+
+# Получаем ввод пользователя
+n = get_user_input()
+
+# Подготовка данных для статических графиков
+x_vals = list(range(1, n+1))
+y_vals_recursive = [recursive_F(i) for i in x_vals]
+y_vals_iterative = [iterative_F(i) for i in x_vals]
+
+# Создание фигуры для графиков
+fig, axs = plt.subplots(3, 1, figsize=(10, 15))
+
+# Рекурсивный график
+axs[0].plot(x_vals, y_vals_recursive, 'tab:blue')
+axs[0].set_title('Рекурсивная функция')
+axs[0].set_xlabel('n')
+axs[0].set_ylabel('F(n)')
+
+# Итерационный график
+axs[1].plot(x_vals, y_vals_iterative, 'tab:green')
+axs[1].set_title('Итерационная функция')
+axs[1].set_xlabel('n')
+axs[1].set_ylabel('F(n)')
+
+# Динамический график
+axs[2].set_xlim(0, n)
+axs[2].set_ylim(0, max(y_vals_iterative) * 1.1) # немного больше максимального значения для наглядности
+axs[2].set_title('Динамическая визуализация')
+line1, = axs[2].plot([], [], 'r-', label='Рекурсивная')
+line2, = axs[2].plot([], [], 'g-', label='Итерационная')
+axs[2].legend()
+
+# Функция инициализации для динамического графика
+def init():
+    line1.set_data([], [])
+    line2.set_data([], [])
+    return line1, line2
+
+# Функция анимации для динамического графика
+def animate(i):
+    x = i + 1  # начинаем с 1, так как n > 1
+    y1 = recursive_F(x)
+    y2 = iterative_F(x)
+    line1.set_data(x_vals[:i+1], y_vals_recursive[:i+1])
+    line2.set_data(x_vals[:i+1], y_vals_iterative[:i+1])
+    return line1, line2
+
+# Создание анимации
+ani = FuncAnimation(fig, animate, frames=np.arange(1, n), init_func=init, blit=True, repeat=False)
+
+# Показать графики
+plt.tight_layout()
+plt.show()
