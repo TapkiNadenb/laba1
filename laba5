@@ -1,82 +1,98 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+"""
+Задана рекуррентная функция. Область определения функции – натуральные числа. Написать программу сравнительного вычисления данной функции рекурсивно и итерационно.
+Определить границы применимости рекурсивного и итерационного подхода. Результаты сравнительного исследования времени вычисления представить в табличной и графической форме.
+16.	F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
+"""
 
-# Предположим, что это ваша рабочая рекурсивная функция
-def recursive_F(n):
+import timeit
+import matplotlib.pyplot as plt
+
+"""
+Делаем кэш для хранения вычисленных значений факториалов
+"""
+cache_factorial = {0: 1, 1: 1}
+
+"""
+Создаём динамическую функцию для вычисления F(n)
+"""
+def dynamic_factorial(n):
+    if n not in factorial_cache:
+        factorial_cache[n] = n * dynamic_factorial(n-1)
+    return factorial_cache[n]
+
+"""
+Рекурсивная функция
+"""
+def recursive_factorial(n):
     if n == 0:
         return 1
     else:
-        return recursive_F(n-1) + 1/n
+        return n * recursive_factorial(n-1)
 
-# Простая итеративная функция для примера
-def iterative_F(n):
+"""
+Динамическая функция
+"""
+def dynamic_factorial(n):
+    if n in cache_factorial:
+        return cache_factorial[n]
+
+    """
+    Вычисляем факториалы последовательно до n и сохраняем их в кэше
+    """
+    for i in range(2, n + 1):
+        cache_factorial[i] = cache_factorial[i - 1] * i
+
+    return cache_factorial[n]
+
+"""
+Итеративная функция
+"""
+def iterative_factorial(n):
     result = 1
-    for i in range(1, n+1):
-        result += 1/i
+    for i in range(2, n+1):
+        result *= i
     return result
 
-# Функция для получения ввода от пользователя
-def get_user_input():
-    while True:
-        try:
-            n = int(input("Введите положительное целое число n больше 1: "))
-            if n > 1:
-                return n
-            else:
-                print("Число должно быть больше 1.")
-        except ValueError:
-            print("Неверный ввод. Пожалуйста, введите целое число.")
+"""
+Функция для измерения времени выполнения
+"""
+def score_time(func, n):
+    return timeit.timeit(lambda: func(n), number=1000)
 
-# Получаем ввод пользователя
-n = get_user_input()
+"""
+Значения n для которых измеряем время
+"""
+n_values = range(1, 10)
+recursive_times = []
+iterative_times = []
+dynamic_times = []
 
-# Подготовка данных для статических графиков
-x_vals = list(range(1, n+1))
-y_vals_recursive = [recursive_F(i) for i in x_vals]
-y_vals_iterative = [iterative_F(i) for i in x_vals]
+"""
+Измерение времени выполнения для каждого значения n
+"""
+for n in n_values:
+    recursive_times.append(score_time(recursive_factorial, n))
+    iterative_times.append(score_time(iterative_factorial, n))
+    dynamic_times.append(score_time(dynamic_factorial, n))
 
-# Создание фигуры для графиков
-fig, axs = plt.subplots(3, 1, figsize=(10, 15))
+"""
+Выводим результаты в табличной форме
+"""
+print(f"{'n':<10}{'Рекурсивное время (мс)':<25}{'Итерационное время (мс)':<25}{'Динамическое время (мс)':<25}")
+for i, n in enumerate(n_values):
+    print(f"{n:<10}{recursive_times[i]:<25}{iterative_times[i]:<25}{dynamic_times[i]:<25}")
 
-# Рекурсивный график
-axs[0].plot(x_vals, y_vals_recursive, 'tab:blue')
-axs[0].set_title('Рекурсивная функция')
-axs[0].set_xlabel('n')
-axs[0].set_ylabel('F(n)')
-
-# Итерационный график
-axs[1].plot(x_vals, y_vals_iterative, 'tab:green')
-axs[1].set_title('Итерационная функция')
-axs[1].set_xlabel('n')
-axs[1].set_ylabel('F(n)')
-
-# Динамический график
-axs[2].set_xlim(0, n)
-axs[2].set_ylim(0, max(y_vals_iterative) * 1.1) # немного больше максимального значения для наглядности
-axs[2].set_title('Динамическая визуализация')
-line1, = axs[2].plot([], [], 'r-', label='Рекурсивная')
-line2, = axs[2].plot([], [], 'g-', label='Итерационная')
-axs[2].legend()
-
-# Функция инициализации для динамического графика
-def init():
-    line1.set_data([], [])
-    line2.set_data([], [])
-    return line1, line2
-
-# Функция анимации для динамического графика
-def animate(i):
-    x = i + 1  # начинаем с 1, так как n > 1
-    y1 = recursive_F(x)
-    y2 = iterative_F(x)
-    line1.set_data(x_vals[:i+1], y_vals_recursive[:i+1])
-    line2.set_data(x_vals[:i+1], y_vals_iterative[:i+1])
-    return line1, line2
-
-# Создание анимации
-ani = FuncAnimation(fig, animate, frames=np.arange(1, n), init_func=init, blit=True, repeat=False)
-
-# Показать графики
-plt.tight_layout()
+"""
+Делаем построение и вывод графика результатов
+"""
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.plot(n_values, recursive_times, label='Рекурсивно', marker='o', linewidth=2)
+ax.plot(n_values, iterative_times, label='Итерационно', marker='o', linewidth=2)
+ax.plot(n_values, dynamic_times, label='Динамическое', marker='o', linewidth=2)
+ax.set_xlabel('n', fontsize=14)
+ax.set_ylabel('Время (в миллисекундах)', fontsize=14)
+ax.legend(fontsize=12)
+ax.set_title('Сравнение времени вычисления функции F(n)', fontsize=16)
+ax.tick_params(axis='both', which='major', labelsize=12)
+plt.grid(True)
 plt.show()
