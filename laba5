@@ -4,95 +4,97 @@
 16.	F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
 """
 
-import timeit
 import matplotlib.pyplot as plt
+import math
+import time
+#F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
 
-"""
-Делаем кэш для хранения вычисленных значений факториалов
-"""
-cache_factorial = {0: 1, 1: 1}
-
-"""
-Создаём динамическую функцию для вычисления F(n)
-"""
-def dynamic_factorial(n):
-    if n not in factorial_cache:
-        factorial_cache[n] = n * dynamic_factorial(n-1)
-    return factorial_cache[n]
-
-"""
-Рекурсивная функция
-"""
-def recursive_factorial(n):
+def factorial(n):
     if n == 0:
         return 1
+    q = 1
+    for j in range(1, n + 1):
+        q *= j
+    return q
+
+sign=1
+# рекурсивный подход
+def recursive_F(n):
+    if n == 0:
+        return 1
+    elif n == 1:
+        return 1
     else:
-        return n * recursive_factorial(n-1)
+        # F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
 
-"""
-Динамическая функция
-"""
-def dynamic_factorial(n):
-    if n in cache_factorial:
-        return cache_factorial[n]
+        global sign
+        sign *= -1
+        return sign * n * recursive_F(n - 1) +(2* recursive_F(n-2) / (factorial(2*n)))
 
-    """
-    Вычисляем факториалы последовательно до n и сохраняем их в кэше
-    """
-    for i in range(2, n + 1):
-        cache_factorial[i] = cache_factorial[i - 1] * i
 
-    return cache_factorial[n]
+sign = 1
+fpred = 1
+fpred2 = 1
+# итерация подход
+def iterative_F(n):
+    f0 = 1
+    f1 = 1
+    global fpred, fpred2, sign
+    if n == 1:
+        return f0
+    elif n == 1:
+        return f1
+    else:
+        # F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
 
-"""
-Итеративная функция
-"""
-def iterative_factorial(n):
-    result = 1
-    for i in range(2, n+1):
-        result *= i
-    return result
+        for i in range(2, n + 1):
+            sign *= -1
+            fi = sign * n * fpred + (2*fpred2 // factorial(2 * i))
+            fpred2, fpred = fpred, fi
+        return fpred
 
-"""
-Функция для измерения времени выполнения
-"""
-def score_time(func, n):
-    return timeit.timeit(lambda: func(n), number=1000)
 
-"""
-Значения n для которых измеряем время
-"""
-n_values = range(1, 10)
+# сравнение времени выполнения
+n = 20
+recursive_start_time = time.time()
+recursive_result = recursive_F(n)
+recursive_time = time.time() - recursive_start_time
+
+iterative_start_time = time.time()
+iterative_result = iterative_F(n)
+iterative_time = time.time() - iterative_start_time
+
+print("| n | Recursive time | Iterative time |")
+print("|---|---------------|----------------|")
+for n in range(1, 21):
+    recursive_start_time = time.perf_counter()
+    recursive_F(n)
+    recursive_time = time.perf_counter() - recursive_start_time
+
+    iterative_start_time = time.perf_counter()
+    iterative_F(n)
+    iterative_time = time.perf_counter() - iterative_start_time
+
+    print("|", n, "|", round(recursive_time, 5), "|", round(iterative_time, 5), "|")
+
+n_values = list(range(1, 21))
 recursive_times = []
 iterative_times = []
-dynamic_times = []
-
-"""
-Измерение времени выполнения для каждого значения n
-"""
 for n in n_values:
-    recursive_times.append(score_time(recursive_factorial, n))
-    iterative_times.append(score_time(iterative_factorial, n))
-    dynamic_times.append(score_time(dynamic_factorial, n))
+    recursive_start_time = time.perf_counter()
+    recursive_F(n)
+    recursive_time = time.perf_counter() - recursive_start_time
+    recursive_times.append(recursive_time)
 
-"""
-Выводим результаты в табличной форме
-"""
-print(f"{'n':<10}{'Рекурсивное время (мс)':<25}{'Итерационное время (мс)':<25}{'Динамическое время (мс)':<25}")
-for i, n in enumerate(n_values):
-    print(f"{n:<10}{recursive_times[i]:<25}{iterative_times[i]:<25}{dynamic_times[i]:<25}")
+    iterative_start_time = time.perf_counter()
+    iterative_F(n)
+    iterative_time = time.perf_counter() - iterative_start_time
+    iterative_times.append(iterative_time)
 
-"""
-Делаем построение и вывод графика результатов
-"""
-fig, ax = plt.subplots(figsize=(8, 6))
-ax.plot(n_values, recursive_times, label='Рекурсивно', marker='o', linewidth=2)
-ax.plot(n_values, iterative_times, label='Итерационно', marker='o', linewidth=2)
-ax.plot(n_values, dynamic_times, label='Динамическое', marker='o', linewidth=2)
-ax.set_xlabel('n', fontsize=14)
-ax.set_ylabel('Время (в миллисекундах)', fontsize=14)
-ax.legend(fontsize=12)
-ax.set_title('Сравнение времени вычисления функции F(n)', fontsize=16)
-ax.tick_params(axis='both', which='major', labelsize=12)
-plt.grid(True)
+# вывод графика
+plt.plot(n_values, recursive_times, label='Recursive time')
+plt.plot(n_values, iterative_times, label='Iterative time')
+plt.xlabel('n')
+plt.ylabel('Time (seconds)')
+plt.legend()
 plt.show()
