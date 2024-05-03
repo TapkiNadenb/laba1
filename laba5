@@ -5,57 +5,55 @@
 """
 
 import matplotlib.pyplot as plt
+#график
 import math
 import time
+#время считаем
 #F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
 
+#функция для факториала, тупо считает факториал
 def factorial(n):
     if n == 0:
         return 1
-    q = 1
+    fact = 1
     for j in range(1, n + 1):
-        q *= j
-    return q
+        fact *= j
+    return fact
 
-sign=1
 # рекурсивный подход
+sign=1 # переменная для знакопеременности
 def recursive_F(n):
     if n == 0:
         return 1
     elif n == 1:
         return 1
     else:
-        # F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
-
         global sign
         sign *= -1
         return sign * n * recursive_F(n - 1) +(2* recursive_F(n-2) / (factorial(2*n)))
 
-
-sign = 1
-fpred = 1
-fpred2 = 1
 # итерация подход
+fact_predid = 1# переменная для запоминания f(n-1)
+fact_predid2 = 1# переменная для запоминания f(n-2)
 def iterative_F(n):
     f0 = 1
     f1 = 1
-    global fpred, fpred2, sign
-    if n == 1:
+    global fact_predid, fact_predid2, sign
+    if n == 0:
         return f0
     elif n == 1:
         return f1
     else:
-        # F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
-
         for i in range(2, n + 1):
             sign *= -1
-            fi = sign * n * fpred + (2*fpred2 // factorial(2 * i))
-            fpred2, fpred = fpred, fi
-        return fpred
+            fi = sign * n * fact_predid + (2*fact_predid2 // factorial(2 * i))
+            fact_predid2=fact_predid
+            fact_predid = fi
+        return fact_predid
 
 
 # сравнение времени выполнения
-n = 20
+n = 10
 recursive_start_time = time.time()
 recursive_result = recursive_F(n)
 recursive_time = time.time() - recursive_start_time
@@ -66,7 +64,7 @@ iterative_time = time.time() - iterative_start_time
 
 print("| n | Recursive time | Iterative time |")
 print("|---|---------------|----------------|")
-for n in range(1, 21):
+for n in range(1, 11):
     recursive_start_time = time.perf_counter()
     recursive_F(n)
     recursive_time = time.perf_counter() - recursive_start_time
@@ -75,9 +73,9 @@ for n in range(1, 21):
     iterative_F(n)
     iterative_time = time.perf_counter() - iterative_start_time
 
-    print("|", n, "|", round(recursive_time, 5), "|", round(iterative_time, 5), "|")
+    print("|", n, "|", round(recursive_time, 10), "|", round(iterative_time, 10), "|")
 
-n_values = list(range(1, 21))
+n_values = list(range(1, 11))
 recursive_times = []
 iterative_times = []
 for n in n_values:
