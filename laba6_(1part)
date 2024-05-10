@@ -30,7 +30,7 @@ algorithmic_results = algorithmiki()
 # Вызываем функцию и сохраняем результаты
 end_time = time.time()
 # Записываем время окончания выполнения алгоритма
-print("Затраченно времени в секундах:", end_time - start_time)
+print("Затрачено времени в секундах:", end_time - start_time)
 print("Всего комбинаций:", len(algorithmic_results))
 
 
@@ -62,4 +62,4 @@ print("Всего комбинаций:", len(seatings))
 # Засекаем время окончания выполнения и выводим разницу
 end_time = time.time()
 elapsed_time = end_time - start_time
-print("Затраченно времени в секундах:", elapsed_time)
+print("Затрачено времени в секундах:", elapsed_time)
