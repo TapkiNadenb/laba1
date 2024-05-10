@@ -18,6 +18,7 @@ def factorial(n):
 # Мемоизация для функции F
 F_cache = {0: 1, 1: 1}
 
+# Pекурсивный подход с использованием мемоизации
 def recursive_F(n):
     if n not in F_cache:
         sign = -1 if n % 2 else 1
@@ -66,3 +67,4 @@ plt.xlabel('n')
 plt.ylabel('Time (seconds)')
 plt.legend()
 plt.show()
+
