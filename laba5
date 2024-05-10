@@ -5,79 +5,47 @@
 """
 
 import matplotlib.pyplot as plt
-#график
-import math
 import time
-#время считаем
-#F(0) = 1, F(1) = 1, F(n) = (-1)n*(F(n–1) + 2*F(n-2) /(2n)!), при n > 1
 
-#функция для факториала, считает факториал
+# Мемоизация для факториала
+factorial_cache = {0: 1}
+
 def factorial(n):
-    if n == 0:
-        return 1
-    fact = 1
-    for j in range(1, n + 1):
-        fact *= j
-    return fact
+    if n not in factorial_cache:
+        factorial_cache[n] = n * factorial(n - 1)
+    return factorial_cache[n]
 
-# рекурсивный подход
-sign=1 # переменная для знакопеременности
+# Мемоизация для функции F
+F_cache = {0: 1, 1: 1}
+
 def recursive_F(n):
-    if n == 0:
-        return 1
-    elif n == 1:
-        return 1
-    else:
-        global sign
-        sign *= -1
-        return sign * n * recursive_F(n - 1) +(2* recursive_F(n-2) / (factorial(2*n)))
+    if n not in F_cache:
+        sign = -1 if n % 2 else 1
+        F_cache[n] = sign * (recursive_F(n - 1) + 2 * recursive_F(n - 2)) / factorial(2 * n)
+    return F_cache[n]
 
-# итерация подход
-fact_predid = 1# переменная для запоминания f(n-1)
-fact_predid2 = 1# переменная для запоминания f(n-2)
+# Итеративный подход с использованием кэша факториала
 def iterative_F(n):
-    f0 = 1
-    f1 = 1
-    global fact_predid, fact_predid2, sign
-    if n == 0:
-        return f0
-    elif n == 1:
-        return f1
-    else:
-        for i in range(2, n + 1):
-            sign *= -1
-            fi = sign * n * fact_predid + (2*fact_predid2 // factorial(2 * i))
-            fact_predid2=fact_predid
-            fact_predid = fi
-        return fact_predid
+    if n in F_cache:
+        return F_cache[n]
 
+    f0, f1 = 1, 1
+    for i in range(2, n + 1):
+        sign = -1 if i % 2 else 1
+        fi = sign * (f1 + 2 * f0) / factorial(2 * i)
+        f0, f1 = f1, fi
+        F_cache[i] = fi
 
-# сравнение времени выполнения
-n = 10
-recursive_start_time = time.time()
-recursive_result = recursive_F(n)
-recursive_time = time.time() - recursive_start_time
+    return F_cache[n]
 
-iterative_start_time = time.time()
-iterative_result = iterative_F(n)
-iterative_time = time.time() - iterative_start_time
-
+# Сравнение времени выполнения
 print("| n | Recursive time | Iterative time |")
 print("|---|---------------|----------------|")
-for n in range(1, 11):
-    recursive_start_time = time.perf_counter()
-    recursive_F(n)
-    recursive_time = time.perf_counter() - recursive_start_time
-
-    iterative_start_time = time.perf_counter()
-    iterative_F(n)
-    iterative_time = time.perf_counter() - iterative_start_time
-
-    print("|", n, "|", round(recursive_time, 10), "|", round(iterative_time, 10), "|")
 
 n_values = list(range(1, 11))
 recursive_times = []
 iterative_times = []
+
 for n in n_values:
     recursive_start_time = time.perf_counter()
     recursive_F(n)
@@ -89,7 +57,9 @@ for n in n_values:
     iterative_time = time.perf_counter() - iterative_start_time
     iterative_times.append(iterative_time)
 
-# вывод графика
+    print("|", n, "|", round(recursive_time, 10), "|", round(iterative_time, 10), "|")
+
+# Вывод графика
 plt.plot(n_values, recursive_times, label='Recursive time')
 plt.plot(n_values, iterative_times, label='Iterative time')
 plt.xlabel('n')
