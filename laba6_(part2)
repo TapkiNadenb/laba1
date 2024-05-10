@@ -1,0 +1,105 @@
+'''
+В пассажирском поезде 9 вагонов. Выведите все возможные варианты рассадки в поезде 4 человек, при условии,
+что все они должны ехать в различных вагонах? Сумма номеров вагонов, в которых находятся люди, должна быть четной. 
+Нужно найти такую комбинацию, где максимальное расстояние между любыми двумя людьми минимизируется. 
+'''
+'''
+Алгоритмический подход
+'''
+
+import time
+def algorithmiki():
+    results = []
+    min_max_distance = float('inf')  # Устанавливаем начальное значение максимального расстояния как бесконечность
+    optimal_combination = ()  # Пустой кортеж для хранения оптимальной комбинации
+
+    for i in range(1, 10):
+        for j in range(1, 10):
+            if j != i:
+                for k in range(1, 10):
+                    if k != i and k != j:
+                        for l in range(1, 10):
+                            if l != i and l != j and l != k:
+                                # Проверяем, что сумма номеров вагонов четная
+                                if (i + j + k + l) % 2 == 0:
+                                    results.append((i, j, k, l))
+                                    # Находим максимальное расстояние в текущей комбинации
+                                    current_max_distance = max(abs(i - j), abs(i - k), abs(i - l),
+                                                               abs(j - k), abs(j - l), abs(k - l))
+                                    # Обновляем минимальное максимальное расстояние и сохраняем оптимальную комбинацию
+                                    if current_max_distance < min_max_distance:
+                                        min_max_distance = current_max_distance
+                                        optimal_combination = (i, j, k, l)
+
+    return results, optimal_combination, min_max_distance
+
+start_time = time.time()
+# Записываем время начала выполнения алгоритма
+
+algorithmic_results, optimal_combination, min_max_distance = algorithmiki()
+# Вызываем функцию и сохраняем результаты
+
+end_time = time.time()
+# Записываем время окончания выполнения алгоритма
+
+print("Затрачено времени в секундах:", end_time - start_time)
+print("Всего комбинаций:", len(algorithmic_results))
+print("Оптимальная комбинация:", optimal_combination)
+print("Минимальное максимальное расстояние:", min_max_distance)
+
+
+'''
+C помощью функций Питона
+'''
+
+from itertools import permutations
+import time
+
+# Функция для оценки максимального расстояния между любыми двумя людьми в комбинации
+def max_distance(combination):
+    return max(abs(a - b) for a, b in permutations(combination, 2))
+
+# Функция для фильтрации комбинаций, где сумма номеров вагонов четная
+def filter_even_sum_combinations(combinations):
+    return [comb for comb in combinations if sum(comb) % 2 == 0]
+
+# Функция для нахождения оптимального решения
+def find_optimal_seating(combinations):
+    optimal_seating = None
+    minimum_max_distance = float('inf')
+    for comb in combinations:
+        distance = max_distance(comb)
+        if distance < minimum_max_distance:
+            minimum_max_distance = distance
+            optimal_seating = comb
+    return optimal_seating, minimum_max_distance
+
+# Главная функция
+def main():
+    # Засекаем время начала выполнения
+    start_time = time.time()
+
+    # Генерация всех возможных вариантов рассадки
+    train_cars = range(1, 10)
+    all_seatings = list(permutations(train_cars, 4))
+
+    # Фильтрация комбинаций с четной суммой номеров вагонов
+    even_sum_seatings = filter_even_sum_combinations(all_seatings)
+
+    # Находим оптимальное решение
+    optimal_seating, minimum_max_distance = find_optimal_seating(even_sum_seatings)
+
+    # Засекаем время окончания выполнения и выводим результаты
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    # Вывод результатов
+    print("Всего комбинаций:", len(all_seatings))
+    print("Комбинаций с четной суммой:", len(even_sum_seatings))
+    print("Оптимальное рассаживание:", optimal_seating)
+    print("Минимальное максимальное расстояние:", minimum_max_distance)
+    print("Затрачено времени в секундах:", elapsed_time)
+
+# Вызываем главную функцию
+if __name__ == "__main__":
+    main()
