@@ -33,14 +33,14 @@ def algorithmiki():
 
     return results, optimal_combination, min_max_distance
 
-start_time = time.time()
 # Записываем время начала выполнения алгоритма
+start_time = time.time()
 
-algorithmic_results, optimal_combination, min_max_distance = algorithmiki()
 # Вызываем функцию и сохраняем результаты
+algorithmic_results, optimal_combination, min_max_distance = algorithmiki()
 
-end_time = time.time()
 # Записываем время окончания выполнения алгоритма
+end_time = time.time()
 
 print("Затрачено времени в секундах:", end_time - start_time)
 print("Всего комбинаций:", len(algorithmic_results))
@@ -60,11 +60,11 @@ def max_distance(combination):
     return max(abs(a - b) for a, b in permutations(combination, 2))
 
 # Функция для фильтрации комбинаций, где сумма номеров вагонов четная
-def filter_even_sum_combinations(combinations):
+def filter_combi(combinations):
     return [comb for comb in combinations if sum(comb) % 2 == 0]
 
 # Функция для нахождения оптимального решения
-def find_optimal_seating(combinations):
+def find_opt(combinations):
     optimal_seating = None
     minimum_max_distance = float('inf')
     for comb in combinations:
@@ -84,10 +84,10 @@ def main():
     all_seatings = list(permutations(train_cars, 4))
 
     # Фильтрация комбинаций с четной суммой номеров вагонов
-    even_sum_seatings = filter_even_sum_combinations(all_seatings)
+    even_sum_seatings = filter_combi(all_seatings)
 
     # Находим оптимальное решение
-    optimal_seating, minimum_max_distance = find_optimal_seating(even_sum_seatings)
+    optimal_seating, minimum_max_distance = find_opt(even_sum_seatings)
 
     # Засекаем время окончания выполнения и выводим результаты
     end_time = time.time()
