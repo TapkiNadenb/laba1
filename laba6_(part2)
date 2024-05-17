@@ -1,12 +1,12 @@
 '''
 В пассажирском поезде 9 вагонов. Выведите все возможные варианты рассадки в поезде 4 человек, при условии,
-что все они должны ехать в различных вагонах? Сумма номеров вагонов, в которых находятся люди, должна быть четной. 
-Нужно найти такую комбинацию, где максимальное расстояние между любыми двумя людьми минимизируется. 
+что все они должны ехать в различных вагонах? Сумма номеров вагонов, в которых находятся люди, должна быть четной.
+Нужно найти такую комбинацию, где максимальное расстояние между любыми двумя людьми минимизируется.
 '''
+
 '''
 Алгоритмический подход
 '''
-
 import time
 def algorithmiki():
     results = []
@@ -23,10 +23,11 @@ def algorithmiki():
                                 # Проверяем, что сумма номеров вагонов четная
                                 if (i + j + k + l) % 2 == 0:
                                     results.append((i, j, k, l))
+                                    print(i, j, k, l)
                                     # Находим максимальное расстояние в текущей комбинации
                                     current_max_distance = max(abs(i - j), abs(i - k), abs(i - l),
                                                                abs(j - k), abs(j - l), abs(k - l))
-                                    # Обновляем минимальное максимальное расстояние и сохраняем оптимальную комбинацию
+                                    # Обновляем минимально максимальное расстояние и сохраняем оптимальную комбинацию
                                     if current_max_distance < min_max_distance:
                                         min_max_distance = current_max_distance
                                         optimal_combination = (i, j, k, l)
@@ -45,7 +46,7 @@ end_time = time.time()
 print("Затрачено времени в секундах:", end_time - start_time)
 print("Всего комбинаций:", len(algorithmic_results))
 print("Оптимальная комбинация:", optimal_combination)
-print("Минимальное максимальное расстояние:", min_max_distance)
+print("Минимально максимальное расстояние:", min_max_distance)
 
 
 '''
@@ -86,6 +87,10 @@ def main():
     # Фильтрация комбинаций с четной суммой номеров вагонов
     even_sum_seatings = filter_combi(all_seatings)
 
+    # Вывод всех комбинаций с четной суммой номеров вагонов
+    for seating in even_sum_seatings:
+        print(seating)
+
     # Находим оптимальное решение
     optimal_seating, minimum_max_distance = find_opt(even_sum_seatings)
 
@@ -94,10 +99,9 @@ def main():
     elapsed_time = end_time - start_time
 
     # Вывод результатов
-    print("Всего комбинаций:", len(all_seatings))
     print("Комбинаций с четной суммой:", len(even_sum_seatings))
     print("Оптимальное рассаживание:", optimal_seating)
-    print("Минимальное максимальное расстояние:", minimum_max_distance)
+    print("Минимально максимальное расстояние:", minimum_max_distance)
     print("Затрачено времени в секундах:", elapsed_time)
 
 # Вызываем главную функцию
