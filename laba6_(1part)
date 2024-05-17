@@ -17,6 +17,7 @@ def algorithmiki():
                         for l in range(1, 10): # Четвертый цикл для четвертого человека в диапазоне от 1 до 9 вагонов
                             if l != i and l != j and l != k: # Проверка
                                 results.append((i, j, k, l))
+                                print(i, j, k, l)
     return results
 # Записываем время начала выполнения алгоритма
 start_time = time.time()
@@ -37,16 +38,19 @@ import time
 
 # Функция для генерации всех возможных вариантов рассадки
 def generate_seating():
-    train_cars = range(1, 10) # Создаем список всех вагонов
-    seating_combinations = list(permutations(train_cars, 4))# Используем функцию permutations для генерации всех возможных комбинаций рассадки 4 человек в 9 вагонах
+    train_cars = range(1, 10)  # Создаем список всех вагонов
+    seating_combinations = list(permutations(train_cars, 4))  # Используем функцию permutations для генерации всех возможных комбинаций рассадки 4 человек в 9 вагонах
     return seating_combinations
 
 # Засекаем время начала выполнения
 start_time = time.time()
 
-# Генерация и вывод всех возможных вариантов рассадки
+# Генерация всех возможных вариантов рассадки
 seatings = generate_seating()
 
+# Вывод каждой комбинации
+for combination in seatings:
+    print(combination)
 
 # Вывод количества всех возможных комбинаций
 print("Всего комбинаций:", len(seatings))
@@ -55,3 +59,4 @@ print("Всего комбинаций:", len(seatings))
 end_time = time.time()
 elapsed_time = end_time - start_time
 print("Затрачено времени в секундах:", elapsed_time)
+
