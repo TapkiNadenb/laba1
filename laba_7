@@ -1,0 +1,38 @@
+import tkinter as tk
+from tkinter import scrolledtext
+from itertools import permutations
+
+
+# Функция для генерации и вывода всех комбинаций рассадки
+def generate_combinations():
+    num_cars = int(entry.get())
+    train_cars = range(1, num_cars + 1)
+    all_seatings = list(permutations(train_cars, 4))
+
+    output_text.delete('1.0', tk.END)  # Очистка текстового поля перед выводом новых данных
+    for seating in all_seatings:
+        output_text.insert(tk.END, f'{seating}\n')
+
+
+# Создание основного окна
+root = tk.Tk()
+root.title("Генератор комбинаций поездов")
+
+# Метка с инструкцией
+label = tk.Label(root, text="Введите количество вагонов (от 1 до n):")
+label.pack()
+
+# Поле ввода для указания количества вагонов
+entry = tk.Entry(root)
+entry.pack()
+
+# Кнопка для запуска генерации комбинаций
+generate_button = tk.Button(root, text="Генерировать комбинации", command=generate_combinations)
+generate_button.pack()
+
+# Текстовое поле с прокруткой для вывода результатов
+output_text = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=40, height=10)
+output_text.pack()
+
+# Запуск основного цикла Tkinter
+root.mainloop()
