@@ -1,0 +1,92 @@
+#Вариант 16
+#Объекты – договоры на поставку компьютеров
+#Функции:	сегментация (Разделение, расчленение чего-либо сложного на отдельные части) полного списка договоров по типам компьютеров
+#визуализация предыдущей функции в форме круговой диаграммы
+#сегментация полного списка договоров по постовщикам
+#визуализация предыдущей функции в форме круговой диаграммы
+
+import tkinter as tk
+from tkinter import filedialog, messagebox
+import matplotlib.pyplot as plt
+from collections import Counter
+
+class Contract:  # Класс для представления договора
+    def __init__(self, contract_id, supplier, computer_type): # Инициализация договора с идентификатором, поставщиком и типом компьютера
+        self.contract_id = contract_id
+        self.supplier = supplier
+        self.computer_type = computer_type
+
+    def __str__(self):
+        return f"Contract ID: {self.contract_id}, Supplier: {self.supplier}, Computer Type: {self.computer_type}" # Возвращает строковое представление договора
+
+class ContractManager:  #Класс для управления договорами
+    def __init__(self):
+        self.contracts = [] #Список для хранения всех загруженных договоров
+
+    def load_contracts_from_file(self, filename):
+        try:   #Загрузка договоров из файла с контролем ошибок
+            with open(filename, 'r') as file:
+                for line in file:
+                    parts = line.strip().split(',') # Разделение строки на части по запятым
+                    if len(parts) == 3:
+                        contract_id, supplier, computer_type = parts # Если строка корректна, создаем новый договор и добавляем его в список
+                        self.contracts.append(Contract(contract_id, supplier, computer_type))
+                    else:
+                        raise ValueError("Неверный формат строки в файле") # Если формат строки неверный, генерируем ошибку
+        except Exception as e:
+            messagebox.showerror("Ошибка загрузки файла", str(e)) # Выводим сообщение об ошибке при загрузке файла
+
+    def segment_by_computer_type(self):
+        return Counter(contract.computer_type for contract in self.contracts) #Сегментация договоров по типам компьютеров с подсчетом каждого типа
+
+    def segment_by_supplier(self):
+        return Counter(contract.supplier for contract in self.contracts) # Сегментация договоров по поставщикам с подсчетом для каждого поставщика
+class ContractGUI: # Класс для GUI
+    def __init__(self, root):
+        # Инициализация интерфейса приложения
+        self.root = root
+        self.root.title("Contract Manager")  # Заголовок окна
+
+        self.manager = ContractManager()  # Создание экземпляра менеджера договоров
+
+        # Кнопка для загрузки файла с договорами
+        self.load_button = tk.Button(root, text="Загрузить файл", command=self.load_file)
+        self.load_button.pack(pady=10)
+
+        # Кнопка для сегментации по типу компьютера
+        self.segment_type_button = tk.Button(root, text="Сегментация по типу компьютера", command=self.segment_by_type)
+        self.segment_type_button.pack(pady=10)
+
+        # Кнопка для сегментации по поставщику
+        self.segment_supplier_button = tk.Button(root, text="Сегментация по поставщику", command=self.segment_by_supplier)
+        self.segment_supplier_button.pack(pady=10)
+
+    def load_file(self):
+        filename = filedialog.askopenfilename(title="Выберите файл с договорами") # Открытие диалогового окна для выбора файла
+        if filename:
+            self.manager.load_contracts_from_file(filename) # Если файл выбран, загружаем данные
+            messagebox.showinfo("Загрузка файла", "Файл успешно загружен!")
+
+    def segment_by_type(self):
+        data = self.manager.segment_by_computer_type() # Сегментация договоров по типу компьютеров и отображение круговой диаграммы
+        self.show_pie_chart(data, "Сегментация по типу компьютера")
+
+    def segment_by_supplier(self):
+        data = self.manager.segment_by_supplier() # Сегментация договоров по поставщикам и отображение круговой диаграммы
+        self.show_pie_chart(data, "Сегментация по поставщику")
+
+    def show_pie_chart(self, data, title):
+        # Построение круговой диаграммы для сегментированных данных
+        labels = data.keys()  # Метки (тип компьютера или поставщик)
+        sizes = data.values()  # Значения для каждого сегмента
+
+        plt.figure(figsize=(6, 6))
+        # Построение круговой диаграммы с процентами
+        plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+        plt.title(title)  # Заголовок диаграммы
+        plt.show()
+
+if __name__ == "__main__": # Запуск GUI-приложения
+    root = tk.Tk()  # Создание главного окна
+    gui = ContractGUI(root)  # Инициализация графического интерфейса
+    root.mainloop()  # Запуск главного цикла приложения
