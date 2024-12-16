@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
+from tkinter import Tk, Button, filedialog, messagebox
 import os
-
 
 def read_sales_data(file_name):
     data = {}
@@ -13,13 +13,12 @@ def read_sales_data(file_name):
                 year, sales = line.split(':')
                 data[int(year)] = int(sales)
     except FileNotFoundError:
-        print(f"Файл {file_name} не найден. Проверьте его расположение.")
+        show_error_message(f"Файл {file_name} не найден. Проверьте его расположение.")
         return None
     except ValueError as e:
-        print(f"Ошибка формата в строке '{line}': {e}")
+        show_error_message(f"Ошибка формата в строке '{line}': {e}")
         return None
     return data
-
 
 def plot_sales(data):
     years = list(data.keys())
@@ -34,23 +33,33 @@ def plot_sales(data):
     plt.legend()
     plt.show()
 
+def show_error_message(message):
+    messagebox.showerror("Ошибка", message)
 
-def main():
-    print("Введите имя файла с данными (по умолчанию: 'sales_data.txt'):")
-    file_name = input("> ").strip()
-
-    if not file_name:
-        file_name = "sales_data.txt"
-
-    if not os.path.isfile(file_name):
-        print(f"Файл '{file_name}' не найден. Проверьте имя или расположение.")
+def start_process():
+    file_path = filedialog.askopenfilename(title="Выберите файл с данными", filetypes=[("Текстовые файлы", "*.txt")])
+    if not file_path:
+        messagebox.showinfo("Информация", "Файл не выбран. Завершение работы.")
         return
 
-    sales_data = read_sales_data(file_name)
+    if not os.path.isfile(file_path):
+        show_error_message(f"Файл '{file_path}' не найден. Проверьте имя или расположение.")
+        return
+
+    sales_data = read_sales_data(file_path)
     if sales_data:
-        print("Данные успешно прочитаны! Построение графика...")
+        messagebox.showinfo("Успех", "Данные успешно прочитаны! Построение графика...")
         plot_sales(sales_data)
 
+def main():
+    root = Tk()
+    root.title("Добавить файл")
+    root.geometry("200x100")
+
+    add_file_button = Button(root, text="Добавить файл", command=start_process)
+    add_file_button.pack(expand=True)
+
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
