@@ -1,0 +1,815 @@
+import tkinter as tk
+
+class CheckersGame:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Русские циклические шашки")
+        
+        # Создаем фрейм для игрового поля и резерва
+        self.game_frame = tk.Frame(root)
+        self.game_frame.pack(side=tk.LEFT, padx=10)
+        
+        # Создаем холст для доски
+        self.canvas = tk.Canvas(self.game_frame, width=400, height=400)
+        self.canvas.pack()
+        
+        # Создаем фрейм для резерва и кнопок
+        self.reserve_frame = tk.Frame(root)
+        self.reserve_frame.pack(side=tk.LEFT, padx=10)
+        
+        # Резерв для белых и черных шашек
+        self.white_reserve = []
+        self.black_reserve = []
+        
+        # Флаг для отслеживания режима размещения шашки из резерва
+        self.placing_from_reserve = False
+        
+        # Создаем кнопки резерва с изображением шашек
+        # Сначала черные
+        self.black_reserve_button = tk.Canvas(self.reserve_frame, width=50, height=50)
+        self.black_reserve_button.pack(pady=5)
+        self.black_reserve_button.bind("<Button-1>", lambda e: self.start_placing_from_reserve('b'))
+        
+        # Затем белые
+        self.white_reserve_button = tk.Canvas(self.reserve_frame, width=50, height=50)
+        self.white_reserve_button.pack(pady=5)
+        self.white_reserve_button.bind("<Button-1>", lambda e: self.start_placing_from_reserve('w'))
+        
+        self.update_reserve_buttons()
+        
+        self.board = self.create_board()
+        self.selected_piece = None
+        self.current_turn = 'w'
+        self.undo_button = tk.Button(self.game_frame, text="Отменить", command=self.undo_selection, state=tk.DISABLED)
+        self.undo_button.pack()
+        self.draw_board()
+        self.canvas.bind("<Button-1>", self.click)
+
+    def update_reserve_buttons(self):
+        # Обновляем белую кнопку
+        self.white_reserve_button.delete("all")
+        self.white_reserve_button.create_oval(5, 5, 45, 45, fill="white")
+        self.white_reserve_button.create_text(25, 25, text=str(len(self.white_reserve)))
+        
+        # Обновляем черную кнопку
+        self.black_reserve_button.delete("all")
+        self.black_reserve_button.create_oval(5, 5, 45, 45, fill="black")
+        self.black_reserve_button.create_text(25, 25, text=str(len(self.black_reserve)), fill="white")
+
+    def start_placing_from_reserve(self, color):
+        if color == self.current_turn and not self.placing_from_reserve:
+            # Проверяем, есть ли возможность обязательного взятия
+            if self.must_capture():
+                # Если есть возможность взятия, показываем сообщение
+                message_window = tk.Toplevel(self.root)
+                message_window.title("Внимание")
+                message_window.geometry("300x100")
+                
+                label = tk.Label(message_window, 
+                               text="Вы обязаны выполнить взятие шашки противника!", 
+                               wraplength=250,
+                               pady=20)
+                label.pack()
+                
+                button = tk.Button(message_window, 
+                                 text="OK", 
+                                 command=message_window.destroy)
+                button.pack()
+                
+                return
+            
+            # Если нет обязательного взятия, проверяем наличие шашек в резерве
+            if (color == 'w' and self.white_reserve) or (color == 'b' and self.black_reserve):
+                self.placing_from_reserve = True
+                self.selected_piece = None  # Сбрасываем выбранную шашку
+                self.undo_button.config(state=tk.NORMAL)  # Активируем кнопку отмены
+                self.highlight_available_cells_for_reserve()
+                self.draw_board()
+
+    def highlight_available_cells_for_reserve(self):
+        self.canvas.delete("highlight")
+        start_row = 4 if self.current_turn == 'w' else 0
+        end_row = 8 if self.current_turn == 'w' else 4
+        
+        for row in range(start_row, end_row):
+            for col in range(8):
+                if (row + col) % 2 == 1 and self.board[row][col] == ' ':
+                    x1 = col * 50
+                    y1 = row * 50
+                    self.canvas.create_rectangle(x1, y1, x1+50, y1+50, 
+                                              outline="green", width=2, tags="highlight")
+
+    def update_reserve_display(self):
+        self.white_reserve_label.config(text=f"Белые в резерве: {len(self.white_reserve)}")
+        self.black_reserve_label.config(text=f"Черные в резерве: {len(self.black_reserve)}")
+
+    def can_capture_own_piece(self, pos):
+        if self.must_capture():  # Если есть обязательное взятие, нельзя брать свои шашки
+            return False
+        x, y = pos
+        piece = self.board[x][y]
+        directions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < 8 and 0 <= ny < 8 and self.board[nx][ny] == ' ':
+                mx, my = x + dx // 2, y + dy // 2
+                if self.board[mx][my].lower() == self.current_turn:  # Проверяем, что это наша шашка
+                    return True
+        return False
+
+    def is_valid_move(self, start, end):
+        sx, sy = start
+        ex, ey = end
+        if self.board[ex][ey] != ' ':
+            return False
+        dx = ex - sx
+        dy = ey - sy
+        piece = self.board[sx][sy]
+        
+        if piece.isupper():  # Дамка
+            if abs(dx) == abs(dy):
+                step_x = 1 if dx > 0 else -1
+                step_y = 1 if dy > 0 else -1
+                x, y = sx + step_x, sy + step_y
+                enemy_found = False
+                own_piece_found = False
+                
+                if self.must_capture():  # Если есть возможность взятия
+                    while x != ex and y != ey:
+                        if self.board[x][y] != ' ':
+                            if enemy_found:  # Если уже нашли шашку противника
+                                return False
+                            if self.board[x][y].lower() != self.current_turn:  # Если это шашка противника
+                                enemy_found = True
+                            else:  # Если это наша шашка
+                                return False
+                        x += step_x
+                        y += step_y
+                    return enemy_found  # Ход возможен только если взяли шашку противника
+                else:  # Обычный ход или взятие своей шашки
+                    while x != ex and y != ey:
+                        if self.board[x][y] != ' ':
+                            if enemy_found or own_piece_found:
+                                return False
+                            if self.board[x][y].lower() == self.current_turn:
+                                own_piece_found = True
+                            else:
+                                return False
+                        x += step_x
+                        y += step_y
+                    return True
+        else:  # Обычная шашка
+            if self.must_capture():
+                if abs(dx) == 2 and abs(dy) == 2:
+                    mx, my = (sx + ex) // 2, (sy + ey) // 2
+                    if self.current_turn == 'w' and self.board[mx][my].lower() == 'b':
+                        return True
+                    if self.current_turn == 'b' and self.board[mx][my].lower() == 'w':
+                        return True
+                return False
+            else:
+                if abs(dx) == 2 and abs(dy) == 2:
+                    mx, my = (sx + ex) // 2, (sy + ey) // 2
+                    if self.board[mx][my].lower() == self.current_turn:  # Взятие своей шашки
+                        return True
+                if self.current_turn == 'w' and dx == -1 and abs(dy) == 1:
+                    return True
+                if self.current_turn == 'b' and dx == 1 and abs(dy) == 1:
+                    return True
+        return False
+
+    def move_piece(self, start, end):
+        sx, sy = start
+        ex, ey = end
+        if self.is_valid_move(start, end):
+            piece = self.board[sx][sy]
+            self.board[ex][ey] = self.board[sx][sy]
+            self.board[sx][sy] = ' '
+
+            # Проверяем взятие
+            if abs(ex - sx) == 2 or (piece.isupper() and abs(ex - sx) > 1):
+                if piece.isupper():  # Для дамки
+                    dx = 1 if ex > sx else -1
+                    dy = 1 if ey > sy else -1
+                    x, y = sx + dx, sy + dy
+                    while x != ex and y != ey:
+                        if self.board[x][y] != ' ':
+                            taken_piece = self.board[x][y]
+                            if taken_piece.lower() == self.current_turn:  # Если взяли свою шашку
+                                if self.current_turn == 'w':
+                                    self.white_reserve.append(taken_piece)
+                                else:
+                                    self.black_reserve.append(taken_piece)
+                            self.board[x][y] = ' '
+                            self.selected_piece = (ex, ey)
+                            if self.can_capture((ex, ey)):
+                                self.draw_board()
+                                self.update_reserve_buttons()
+                                return
+                            break
+                        x += dx
+                        y += dy
+                else:  # Для обычной шашки
+                    mx, my = (sx + ex) // 2, (sy + ey) // 2
+                    taken_piece = self.board[mx][my]
+                    if taken_piece.lower() == self.current_turn:  # Если взяли свою шашку
+                        if self.current_turn == 'w':
+                            self.white_reserve.append(taken_piece)
+                        else:
+                            self.black_reserve.append(taken_piece)
+                    self.board[mx][my] = ' '
+                    self.selected_piece = (ex, ey)
+                    if self.can_capture((ex, ey)):
+                        self.draw_board()
+                        self.update_reserve_buttons()
+                        return
+
+            # Превращение в дамку
+            if (self.current_turn == 'w' and ex == 0) or (self.current_turn == 'b' and ex == 7):
+                self.board[ex][ey] = self.board[ex][ey].upper()
+            
+            self.selected_piece = None
+            self.undo_button.config(state=tk.DISABLED)
+            self.switch_turn()
+            self.draw_board()
+            self.update_reserve_buttons()
+            
+            # Добавляем проверку окончания игры
+            self.check_game_over()
+
+    def create_board(self):
+        board = [[' ' for _ in range(8)] for _ in range(8)]
+        for row in range(3):
+            for col in range(8):
+                if (row + col) % 2 == 1:
+                    board[row][col] = 'b'  # Черные шашки
+        for row in range(5, 8):
+            for col in range(8):
+                if (row + col) % 2 == 1:
+                    board[row][col] = 'w'  # Белые шашки
+        return board
+
+    def draw_board(self):
+        self.canvas.delete("all")
+        for row in range(8):
+            for col in range(8):
+                x1 = col * 50
+                y1 = row * 50
+                x2 = x1 + 50
+                y2 = y1 + 50
+                color = "white" if (row + col) % 2 == 0 else "gray"
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
+                piece = self.board[row][col]
+                if piece != ' ':
+                    piece_color = "black" if piece.lower() == 'b' else "white"
+                    self.canvas.create_oval(x1+5, y1+5, x2-5, y2-5, fill=piece_color)
+                    if piece.isupper():
+                        self.canvas.create_rectangle(x1+15, y1+15, x2-15, y2-15, fill="blue")
+        if self.selected_piece:
+            self.highlight_moves(self.selected_piece)
+        elif self.placing_from_reserve:  # Добавляем проверку режима размещения из резерва
+            self.highlight_available_cells_for_reserve()
+
+    def highlight_moves(self, pos):
+        x, y = pos
+        piece = self.board[x][y]
+        
+        if piece.isupper():  # Дамка
+            if self.must_capture():  # Если есть возможность боя
+                directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    enemy_found = False
+                    
+                    while 0 <= nx < 8 and 0 <= ny < 8:
+                        if self.board[nx][ny] != ' ':
+                            if enemy_found:  # Если уже нашли шашку противника
+                                break
+                            if self.board[nx][ny].lower() != self.current_turn:  # Если это шашка противника
+                                enemy_found = True
+                            else:  # Если это наша шашка
+                                break
+                        elif enemy_found:  # Если нашли пустую клетку после шашки противника
+                            cx, cy = ny * 50 + 25, nx * 50 + 25
+                            self.canvas.create_oval(cx-5, cy-5, cx+5, cy+5, fill="red")
+                        nx += dx
+                        ny += dy
+            else:  # Обычный ход или взятие своей шашки
+                directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    own_piece_found = False
+                    
+                    while 0 <= nx < 8 and 0 <= ny < 8:
+                        if self.board[nx][ny] != ' ':
+                            if own_piece_found:  # Если уже нашли свою шашку
+                                break
+                            if self.board[nx][ny].lower() == self.current_turn:  # Если это наша шашка
+                                own_piece_found = True
+                            else:  # Если это шашка противника
+                                break
+                        else:  # Пустая клетка
+                            cx, cy = ny * 50 + 25, nx * 50 + 25
+                            if own_piece_found:  # Если до этого нашли свою шашку
+                                self.canvas.create_oval(cx-5, cy-5, cx+5, cy+5, fill="yellow")
+                            else:  # Обычный ход
+                                self.canvas.create_oval(cx-5, cy-5, cx+5, cy+5, fill="red")
+                        nx += dx
+                        ny += dy
+        else:  # Обычная шашка
+            if self.must_capture():  # Если есть возможность боя
+                directions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < 8 and 0 <= ny < 8 and self.is_valid_move(pos, (nx, ny)):
+                        cx, cy = ny * 50 + 25, nx * 50 + 25
+                        self.canvas.create_oval(cx-5, cy-5, cx+5, cy+5, fill="red")
+            else:  # Обычный ход или взятие своей шашки
+                # Проверяем возможность взятия своих шашек
+                directions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < 8 and 0 <= ny < 8:
+                        mx, my = (x + nx) // 2, (y + ny) // 2
+                        if (0 <= mx < 8 and 0 <= my < 8 and 
+                            self.board[nx][ny] == ' ' and 
+                            self.board[mx][my].lower() == self.current_turn):
+                            cx, cy = ny * 50 + 25, nx * 50 + 25
+                            self.canvas.create_oval(cx-5, cy-5, cx+5, cy+5, fill="yellow")
+                
+                # Обычные ходы
+                directions = [(-1, -1), (-1, 1)] if self.current_turn == 'w' else [(1, -1), (1, 1)]
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < 8 and 0 <= ny < 8 and self.is_valid_move(pos, (nx, ny)):
+                        cx, cy = ny * 50 + 25, nx * 50 + 25
+                        self.canvas.create_oval(cx-5, cy-5, cx+5, cy+5, fill="red")
+
+    def click(self, event):
+        col = event.x // 50
+        row = event.y // 50
+        if 0 <= row < 8 and 0 <= col < 8:
+            if self.placing_from_reserve:
+                self.place_piece_from_reserve(row, col)
+            elif self.selected_piece:
+                self.move_piece(self.selected_piece, (row, col))
+            elif self.board[row][col].lower() == self.current_turn:
+                self.selected_piece = (row, col)
+                self.undo_button.config(state=tk.NORMAL)
+                self.draw_board()
+
+    def place_piece_from_reserve(self, row, col):
+        start_row = 4 if self.current_turn == 'w' else 0
+        end_row = 8 if self.current_turn == 'w' else 4
+        
+        if (start_row <= row < end_row and 
+            (row + col) % 2 == 1 and 
+            self.board[row][col] == ' '):
+            
+            # Размещаем шашку из резерва
+            self.board[row][col] = self.current_turn
+            if self.current_turn == 'w':
+                self.white_reserve.pop()
+            else:
+                self.black_reserve.pop()
+            
+            # Завершаем размещение
+            self.placing_from_reserve = False
+            self.switch_turn()
+            self.draw_board()
+            self.update_reserve_buttons()
+            
+            # Добавляем проверку окончания игры
+            self.check_game_over()
+
+    def undo_selection(self):
+        self.selected_piece = None
+        self.placing_from_reserve = False
+        self.undo_button.config(state=tk.DISABLED)
+        self.draw_board()
+
+    def must_capture(self):
+        for row in range(8):
+            for col in range(8):
+                if self.board[row][col].lower() == self.current_turn:
+                    if self.can_capture((row, col)):
+                        return True
+        return False
+
+    def can_capture(self, pos):
+        x, y = pos
+        piece = self.board[x][y]
+        
+        if piece.isupper():  # Дамка
+            directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                enemy_found = False
+                
+                while 0 <= nx < 8 and 0 <= ny < 8:
+                    if self.board[nx][ny] != ' ':
+                        if enemy_found:  # Если уже нашли шашку противника
+                            break
+                        if self.board[nx][ny].lower() != self.current_turn:  # Если это шашка противника
+                            # Проверяем, есть ли свободное поле после шашки противника
+                            next_x = nx + dx
+                            next_y = ny + dy
+                            if 0 <= next_x < 8 and 0 <= next_y < 8 and self.board[next_x][next_y] == ' ':
+                                return True
+                            break
+                        else:  # Если это наша шашка
+                            break
+                    nx += dx
+                    ny += dy
+        else:  # Обычная шашка
+            directions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < 8 and 0 <= ny < 8 and self.board[nx][ny] == ' ':
+                    mx, my = x + dx // 2, y + dy // 2
+                    if 0 <= mx < 8 and 0 <= my < 8:
+                        if self.current_turn == 'w' and self.board[mx][my].lower() == 'b':
+                            return True
+                        if self.current_turn == 'b' and self.board[mx][my].lower() == 'w':
+                            return True
+        return False
+
+    def switch_turn(self):
+        self.current_turn = 'b' if self.current_turn == 'w' else 'w'
+
+    def has_valid_moves(self):
+        # Проверяем все шашки текущего игрока
+        for row in range(8):
+            for col in range(8):
+                if self.board[row][col].lower() == self.current_turn:
+                    # Проверяем возможность взятия
+                    if self.can_capture((row, col)):
+                        return True
+                    
+                    # Проверяем обычные ходы
+                    piece = self.board[row][col]
+                    if piece.isupper():  # Для дамки
+                        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+                        for dx, dy in directions:
+                            nx, ny = row + dx, col + dy
+                            while 0 <= nx < 8 and 0 <= ny < 8:
+                                if self.board[nx][ny] != ' ':
+                                    break
+                                if self.is_valid_move((row, col), (nx, ny)):
+                                    return True
+                                nx += dx
+                                ny += dy
+                    else:  # Для обычной шашки
+                        directions = [(-1, -1), (-1, 1)] if self.current_turn == 'w' else [(1, -1), (1, 1)]
+                        for dx, dy in directions:
+                            nx, ny = row + dx, col + dy
+                            if 0 <= nx < 8 and 0 <= ny < 8:
+                                if self.is_valid_move((row, col), (nx, ny)):
+                                    return True
+        
+        # Проверяем возможность хода из резерва
+        if (self.current_turn == 'w' and self.white_reserve) or (self.current_turn == 'b' and self.black_reserve):
+            start_row = 4 if self.current_turn == 'w' else 0
+            end_row = 8 if self.current_turn == 'w' else 4
+            
+            for row in range(start_row, end_row):
+                for col in range(8):
+                    if (row + col) % 2 == 1 and self.board[row][col] == ' ':
+                        return True
+        
+        return False
+
+    def check_game_over(self):
+        # Подсчет шашек на доске
+        white_pieces = 0
+        black_pieces = 0
+        
+        for row in range(8):
+            for col in range(8):
+                piece = self.board[row][col]
+                if piece.lower() == 'w':
+                    white_pieces += 1
+                elif piece.lower() == 'b':
+                    black_pieces += 1
+        
+        # Добавляем шашки из резерва
+        white_pieces += len(self.white_reserve)
+        black_pieces += len(self.black_reserve)
+        
+        # Проверяем условия победы
+        if black_pieces == 0:
+            self.show_game_over("Белые шашки выиграли!")
+            return True
+        elif white_pieces == 0:
+            self.show_game_over("Черные шашки выиграли!")
+            return True
+        
+        # Проверяем наличие возможных ходов
+        if not self.has_valid_moves():
+            winner = "Белые" if self.current_turn == 'b' else "Черные"
+            self.show_game_over(f"{winner} шашки выиграли!\nУ противника не осталось возможных ходов!")
+            return True
+        
+        return False
+
+    def show_game_over(self, message):
+        game_over_window = tk.Toplevel(self.root)
+        game_over_window.title("Игра окончена")
+        game_over_window.geometry("400x200")
+        
+        # Центрируем окно
+        game_over_window.transient(self.root)
+        game_over_window.grab_set()
+        
+        # Добавляем сообщение
+        label = tk.Label(game_over_window, 
+                        text=message,
+                        font=("Arial", 14),
+                        wraplength=350,
+                        pady=30)
+        label.pack()
+        
+        # Создаем фрейм для кнопок
+        button_frame = tk.Frame(game_over_window)
+        button_frame.pack(pady=20)
+        
+        # Кнопка "Новая игра"
+        new_game_button = tk.Button(button_frame,
+                                   text="Новая игра",
+                                   width=15,
+                                   command=lambda: self.new_game(game_over_window))
+        new_game_button.pack(side=tk.LEFT, padx=10)
+        
+        # Кнопка "Закрыть"
+        close_button = tk.Button(button_frame,
+                                text="Закрыть",
+                                width=15,
+                                command=self.quit_game)
+        close_button.pack(side=tk.LEFT, padx=10)
+
+    def quit_game(self):
+        self.root.quit()  # Завершаем главный цикл событий
+        self.root.destroy()  # Уничтожаем главное окно
+
+    def new_game(self, game_over_window=None):
+        # Сбрасываем состояние игры
+        self.board = self.create_board()
+        self.selected_piece = None
+        self.current_turn = 'w'
+        self.white_reserve = []
+        self.black_reserve = []
+        self.placing_from_reserve = False
+        self.undo_button.config(state=tk.DISABLED)
+        
+        # Обновляем отображение
+        self.update_reserve_buttons()
+        self.draw_board()
+        
+        # Закрываем окно, если оно существует
+        if game_over_window:
+            game_over_window.destroy()
+
+class MenuWindow:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Меню")
+        self.root.geometry("300x200")
+        
+        # Создаем фрейм для кнопок
+        button_frame = tk.Frame(self.root)
+        button_frame.pack(expand=True)
+        
+        # Кнопки "Правила" и "Играть"
+        tk.Button(button_frame, text="Правила", command=self.show_rules, width=20).pack(pady=10)
+        tk.Button(button_frame, text="Играть", command=self.start_game, width=20).pack(pady=10)
+        
+        self.root.mainloop()
+    
+    def show_rules(self):
+        rules_window = tk.Toplevel(self.root)
+        rules_window.title("Правила игры")
+        rules_window.geometry("800x600")
+        
+        # Создаем текстовое поле с полосой прокрутки
+        text_frame = tk.Frame(rules_window)
+        text_frame.pack(expand=True, fill='both', padx=10, pady=10)
+        
+        scrollbar = tk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+        text_widget.pack(expand=True, fill='both')
+        
+        scrollbar.config(command=text_widget.yview)
+        
+        # Текст правил
+        rules_text = """1) Во время партии у игрока есть 3 варианта хода: Тихий ход (то есть,
+движение своей шашки без взятия); Бой шашки соперника; Бой собственной шашки
+(Самовзятие) с дальнейшим введением её в игру.
+
+2) Бить шашки соперника, поставленные под бой (прямой удар),
+обязательно, а вот брать свои шашки игрок не обязан, но если он начал это делать, то
+должен будет побить все шашки, которые находятся под боем, независимо от того,
+чьи они. Если игрок должен бить чужую шашку и после этого у него появляется
+возможно взять свои шашки, он обязан это сделать.
+
+3) Если есть возможность бить в нескольких направлениях, то выбор предоставляется 
+берущему. Но если надо выбирать бой либо своей шашки, либо чужой, то сначала надо 
+бить шашку соперника. В случае, если при таком раскладе есть возможность бить по 2 
+и более направлениям, то выбор взятия свободный. При варианте боя либо чужой шашки,
+либо своей, а потом чужой, приоритет отдаётся первому взятию.
+
+4) Если игроку приходится выбирать между боем 2 чужих шашек, либо чужой и
+своей, то выбирается 1 вариант, но это касается только непосредственного взятия. А если,
+например, у игрока есть возможность взятия, при котором можно побить чужую шашку,
+потом свою, и затем появляется выбор между боем шашки соперника или собственной, то
+выбирает сам бьющий.
+
+5) В случае, если игрок начинает бить свою шашку, а потом у него появляется
+возможность взять либо чужую, либо свою, также выбирает сам бьющий. Иначе говоря,
+обязанности бить шашку соперника после боя собственной, у игрока нет!
+
+6) Шашки из "резерва" можно сбрасывать на доску на любом ходу, то есть, если
+"Самовзятие" произошло на 5 ходу, то ввод резервной шашки возможен на 6, 7, 8 и т.д.
+ходу. Единственное ограничение для игрока: сбрасывать "резервиста" можно только в
+пределах 4 горизонталей своей зоны.
+
+7) По ходу партии может возникнуть ситуация, при которой игрок имеет
+возможность сбить одновременно свою шашку и шашку соперника (или несколько
+каждой из них), что правилами допускается. Свои сбитые шашки при этом уходят в
+"резерв" с дальнейшей возможностью их сброса, а чужие выходят из игры навсегда.
+
+8) Самосбитая Дамка при уходе в резерв становится простой и только в этом
+качестве может в ходе партии возвратиться в игру. Конечно, чисто практически в такой
+"операции", как правило, нет особого смысла, но всё же ситуации в партии могут
+возникнуть разные. Иногда "замена " Дамки на простую с последующей постановкой её на
+доску может быть единственным способом выигрыша или спасения партии."""
+        
+        text_widget.insert(tk.END, rules_text)
+        text_widget.config(state=tk.DISABLED)  # Делаем текст только для чтения
+        
+        # Кнопка закрытия окна правил
+        tk.Button(rules_window, text="Закрыть", command=rules_window.destroy).pack(pady=10)
+    
+    def start_game(self):
+        self.root.destroy()
+        game_root = tk.Tk()
+        game = CheckersGame(game_root)
+        game_root.mainloop()
+
+class LoginWindow:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Авторизация")
+        self.root.geometry("300x200")
+        
+        # Создаем и размещаем элементы интерфейса
+        tk.Label(self.root, text="Имя:").pack(pady=5)
+        self.username_entry = tk.Entry(self.root)
+        self.username_entry.pack(pady=5)
+        
+        tk.Label(self.root, text="Пароль:").pack(pady=5)
+        self.password_entry = tk.Entry(self.root, show="*")
+        self.password_entry.pack(pady=5)
+        
+        # Создаем фрейм для кнопок
+        button_frame = tk.Frame(self.root)
+        button_frame.pack(pady=20)
+        
+        # Кнопки входа и регистрации
+        tk.Button(button_frame, text="Вход", command=self.login).pack(side=tk.LEFT, padx=10)
+        tk.Button(button_frame, text="Регистрация", command=self.register).pack(side=tk.LEFT, padx=10)
+        
+        # Метка для сообщений об ошибках
+        self.message_label = tk.Label(self.root, text="", fg="red")
+        self.message_label.pack(pady=10)
+        
+        self.root.mainloop()
+    
+    def register(self):
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+        
+        if not username or not password:
+            self.message_label.config(text="Заполните все поля!")
+            return
+        
+        # Проверяем существование пользователя
+        try:
+            with open("D:\\python\\osnova\\accounts.txt", "r", encoding='cp1251') as file:
+                for line in file:
+                    stored_username = line.strip().split(" : ")[0]
+                    if stored_username == username:
+                        # Создаем всплывающее окно с предупреждением
+                        warning_window = tk.Toplevel(self.root)
+                        warning_window.title("Внимание")
+                        warning_window.geometry("300x100")
+                        
+                        label = tk.Label(warning_window, 
+                                       text="Имя пользователя уже существует, введите другое",
+                                       wraplength=250,
+                                       pady=20)
+                        label.pack()
+                        
+                        button = tk.Button(warning_window, 
+                                         text="OK", 
+                                         command=warning_window.destroy)
+                        button.pack()
+                        return
+        except FileNotFoundError:
+            pass
+        
+        # Если пользователь не существует, регистрируем его
+        try:
+            with open("D:\\python\\osnova\\accounts.txt", "a", encoding='cp1251') as file:
+                file.write(f"{username} : {password}\n")
+                
+            # Создаем окно с сообщением об успешной регистрации
+            success_window = tk.Toplevel(self.root)
+            success_window.title("Успешная регистрация")
+            success_window.geometry("300x100")
+            
+            label = tk.Label(success_window, 
+                            text="Данные сохранены, нажмите кнопку 'Вход'",
+                            wraplength=250,
+                            pady=20)
+            label.pack()
+            
+            button = tk.Button(success_window, 
+                              text="OK", 
+                              command=success_window.destroy)
+            button.pack()
+            
+            # Очищаем сообщение об ошибках
+            self.message_label.config(text="")
+            
+        except Exception as e:
+            self.message_label.config(text=f"Ошибка при регистрации: {str(e)}")
+    
+    def login(self):
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+        
+        if not username or not password:
+            self.message_label.config(text="Заполните все поля!")
+            return
+        
+        try:
+            # Пробуем сначала cp1251
+            try:
+                with open("D:\\python\\osnova\\accounts.txt", "r", encoding='cp1251') as file:
+                    for line in file:
+                        stored_username, stored_password = line.strip().split(" : ")
+                        if stored_username == username and stored_password == password:
+                            self.root.quit()  # Останавливаем главный цикл
+                            self.root.destroy()  # Закрываем окно входа
+                            MenuWindow()  # Открываем меню
+                            return
+            except UnicodeDecodeError:
+                # Если не получилось, пробуем utf-8
+                with open("D:\\python\\osnova\\accounts.txt", "r", encoding='utf-8') as file:
+                    for line in file:
+                        stored_username, stored_password = line.strip().split(" : ")
+                        if stored_username == username and stored_password == password:
+                            self.root.quit()  # Останавливаем главный цикл
+                            self.root.destroy()  # Закрываем окно входа
+                            MenuWindow()  # Открываем меню
+                            return
+        
+            # Если дошли до этой точки, значит логин/пароль неверные
+            error_window = tk.Toplevel(self.root)
+            error_window.title("Ошибка")
+            error_window.geometry("300x100")
+            
+            label = tk.Label(error_window, 
+                            text="Имя или пароль введены не правильно",
+                            wraplength=250,
+                            pady=20)
+            label.pack()
+            
+            button = tk.Button(error_window, 
+                              text="OK", 
+                              command=error_window.destroy)
+            button.pack()
+        
+        except FileNotFoundError:
+            error_window = tk.Toplevel(self.root)
+            error_window.title("Ошибка")
+            error_window.geometry("300x100")
+            
+            label = tk.Label(error_window, 
+                            text="Имя или пароль введены не правильно",
+                            wraplength=250,
+                            pady=20)
+            label.pack()
+            
+            button = tk.Button(error_window, 
+                              text="OK", 
+                              command=error_window.destroy)
+            button.pack()
+    
+    def start_game(self):
+        MenuWindow()  # Открываем меню напрямую
+
+if __name__ == "__main__":
+    LoginWindow()
